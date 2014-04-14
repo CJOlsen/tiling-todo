@@ -5,7 +5,6 @@
 (defn member? [item _list]
   (not (nil? (some #{item} _list))))
 
-
 (deftest file-operations
   (testing "Get file names from memory"
     (with-redefs [storage-folder "test/static-folder/"]
@@ -14,7 +13,7 @@
 
   (testing "Delete list from memory (must save it if not there already)"
       (is (with-redefs [storage-folder "test/dynamic-folder/"]
-            (save-list! [1 2 3] "delete-test" "hidden")
+            (save-list! (atom [1 2 3]) "delete-test" "hidden")
             (if (member? "delete-test" (get-list-names))
               (do (delete-list! "delete-test")
                   (not (member? "delete-test" (get-list-names))))
@@ -23,12 +22,12 @@
   (testing "Save list to memory and then load it."
     (is (= (doall (frequencies '("one" "shoe" "nightengale" "foo" "bar")))
            (doall (with-redefs [storage-folder "test/dynamic-folder/"]
-                    (save-list! '("gibberish") "save-test" "active")
+                    (save-list! (atom '("gibberish")) "save-test" "active")
                     (delete-list! "save-test")
-                    (save-list! '("one" "nightengale" "shoe" "foo" "bar")
+                    (save-list! (atom '("one" "nightengale" "shoe" "foo" "bar"))
                                 "save-test"
                                 "active")
-                    (frequencies (get-list "save-test"))))))))
+                    (frequencies @(get-list "save-test"))))))))
 
 (deftest list-operations
   (testing "Add, change and retrieve active/hidden metadata"
@@ -37,5 +36,10 @@
              (list-active? new-list)))
       (is (= false
              (do (make-list-hidden! new-list)
-                 (list-active? new-list)))))))
+                 (list-active? new-list))))))
+  (testing "Retrieve all active lists from memory"
+    (with-redefs [storage-folder "test/static-folder"]
+      (= '("four" "two")
+         (get-active-lists))))
+)
 
