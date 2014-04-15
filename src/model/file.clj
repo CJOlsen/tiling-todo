@@ -1,7 +1,7 @@
 (ns model.file
   (:require [clojure.java.io :as io]))
 
-;; dynamic for testing purposes
+;; dynamic for testing purposes (these get overridden in the test suite)
 (def ^:dynamic storage-folder "lists/")
 (def ^:dynamic storage-folder "test/static-folder")
 
@@ -34,7 +34,7 @@
   (io/delete-file (str storage-folder list-name)))
 
 (defn get-list [list-name]
-  " Returns a list of todo-list items from memory for a given list name. "
+  " Returns a list (an atom with meta-data) of todo-list items from memory for a given list name. "
   ;; this could be cleaned up a bit
   (let [raw-file (try (slurp (str storage-folder "/" list-name))
                       (catch Exception e))]
@@ -68,3 +68,38 @@
 
 (defn startup-lists []
   '())
+
+(defn add-to-list! [a-list item] 
+  (swap! a-list #(conj % item)))
+
+(defn remove-from-list! [a-list item]
+  (swap! a-list #(filter (fn [x] (not (= x item))) %)))
+
+(defn reorder-list! [a-list index new-index]
+  ;; this should have some error checking before it starts reset!-ing 
+  ;; the atoms....
+  (cond (>= index (count @a-list))
+        "list reorder error: index beyond list bounds"
+        (>= new-index (count @a-list))
+        "list reorder error: new index beyond list bounds"
+        (= index new-index)
+        a-list
+        (> index new-index)
+        (reset! a-list
+               (concat (take new-index @a-list)
+                       ;; '("|") ;; adding these simplifies debugging
+                       (list (nth @a-list index))
+                       ;; '("|")
+                       (-> @a-list
+                           (#(drop new-index %))
+                           (#(drop-last (- (count @a-list) index) %)))
+                       ;; '("|")
+                       (drop (inc index) @a-list)))
+        (< index new-index)
+        (reset! a-list
+                (concat (take index @a-list)
+                        (-> @a-list
+                            (#(drop (inc index) %))
+                            (#(drop-last (- (count @a-list) new-index 1) %)))
+                        (list (nth @a-list index))
+                        (drop (inc new-index) @a-list)))))
