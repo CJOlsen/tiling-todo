@@ -1,1 +1,1 @@
-this program structure is a modification of the MVC paradigm where the view is broken up into view and viewmodel for testing purposes.  The viewmodel is the portion of the view that can be tested, the view is the GUI layer that requires user testing.
+This program is structured on the MVC paradigm where possible.  Some portions of the view handle their own events.
