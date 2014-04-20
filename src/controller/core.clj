@@ -4,17 +4,26 @@
             [view.view :as view])
 )
 
-(defn get-active-lists-c []
-  " Get active lists from the model layer, perform any controller level 
-    checks or cleanup here. "
-  (model/get-active-lists))
+(def active-names (atom (model/get-active-list-names)))
+(def hidden-names (atom (model/get-hidden-list-names)))
+(def active-lists (atom (model/get-active-lists)))
 
+(def save-list-lambda
+  " Given to the view layer for saving list modifications. "
+  (fn [list-name list-contents]
+    '()))  ;; will this work???
+
+;; (model/get-active-lists)
+;; (model/display lists)
+
+
+;; view/show-window!
+;; view/show-lists
 
 
 
 (defn -main  [& args]
-  ;; (native!)
-  ;; (-> view/the-frame
-  ;;     pack!
-  ;;     show!)
+  (view/_native!)
+  (view/show-window!)
+  (view/display @active-lists save-list-lambda)
 )

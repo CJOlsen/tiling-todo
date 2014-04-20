@@ -42,9 +42,7 @@ zero-indexed. "
     be changed to a new sequence whenever the user modifies the order.  No
     new items are allowed to be added, nor may existing items be removed."
   [item-list-atom]
-
     (listbox :model @item-list-atom
-
              :drag-enabled? true
              :drop-mode :insert
              :transfer-handler
@@ -70,68 +68,61 @@ zero-indexed. "
                         :start   (fn [c]
                                    [dnd/string-flavor (selection c)])})))
 
-;; (defn make-todo [list-name catch-finished]
-;;   " Takes a name and an initial list and builds a todo-list frame, 
-;;     complete with button bindings.  list-name is the name of the list that
-;;     will be displayed to the user, catch-finished is a currently unused arg
-;;     that would take a lambda function pointing to a 'finished' list.
-;;     Each todo-list is encapsulated in this closure except for the button 
-;;     bindings and 5 public methods: content, name, active?, activate!, and
-;;     deactivate! "
-;;   ;; catch-finished must be a lambda function that takes one argument (a set)
-;;   ;; that handles list items when removed from their list.  It's generally the
-;;   ;; add function of the 'completed' list
-;;   (let [the-name list-name ;; previously (str "list-" list-name)
-;;         ;; it is assumed that the list being loaded has "active" as its head 
-;;         the-list (atom (rest (get-list the-name)))
-;;         the-listbox (reorderable-listbox the-list)
-;;         the-entryfield (text "")
-;;         the-add-button (button :text "add")
-;;         add-fn (fn [e] ;; lambda fn to add new item from the text field (UI)
-;;                  (let [entry-text (text the-entryfield)]
-;;                    (if (> (count entry-text) 0)                ;; if new text
-;;                      (do (swap! the-list #(conj % entry-text)) ;; update atom
-;;                          (save-list! @the-list the-name "active") ;; save atom
-;;                          (text! the-entryfield "")             ;; clear textbox
-;;                          (config! the-listbox :model @the-list))))) ;;update lbx
-;;         _ (listen the-add-button :action add-fn) ;; bind add button to add-fn
-;;         the-remove-button (button :text "remove")
-;;         remove-fn (fn [e] ;; fn bound to the remove button (UI) 
-;;                     (println "remove-fn")
-;;                     (let [selected (set
-;;                                     (selection the-listbox {:multi? true}))]
-;;                       (swap! the-list #(remove selected %))
-;;                       ;; (catch-finished selected) ;; sends to the done list
-;;                       (save-list! @the-list the-name "active")
-;;                       (config! the-listbox :model @the-list)))
-;;         _ (listen the-remove-button :action remove-fn) 
-;;         the-shuffle-button (button :text "shuffle")
-;;         _ (listen the-shuffle-button :action
-;;                   (fn [e]
-;;                     (swap! the-list shuffle)
-;;                     (config! the-listbox :model @the-list)
-;;                     (save-list! @the-list the-name "active")))
-;;         ;; functionality's done, now we lay out the interface
-;;         the-north-split (top-bottom-split
-;;                          (label list-name)
-;;                          (left-right-split the-entryfield
-;;                                           the-add-button
-;;                                           :divider-location 2/3))
-;;         the-south-split (left-right-split the-remove-button
-;;                                           the-shuffle-button
-;;                                           :divider-location 2/3)
-;;         the-content (border-panel
-;;                      :north the-north-split
-;;                      :center (scrollable the-listbox)
-;;                      :south the-south-split
-;;                      :vgap 5 :hgap 5 :border 5)
-;;         ;; the active atom allows lists to be hidden without being deleted
-;;         active (atom true)]
-;;     {:content the-content
-;;      :name the-name
-;;      :active? (deref active)
-;;      :activate! #(reset! active true)
-;;      :deactivate! #(reset! active false)}))
+
+(defn make-todo [list-atom save-lambda]
+  "Takes a list, builds it out into a border panel complete with buttons
+   and internal event handling and returns it. "
+  (let [the-list list-atom
+        list-name (:name (meta the-list))
+        the-listbox (reorderable-listbox the-list)
+        the-entryfield (text "")
+        the-add-button (button :text "add")
+        add-fn (fn [e] ;; lambda fn to add new item from the text field (UI)
+                 (let [entry-text (text the-entryfield)]
+                   (if (> (count entry-text) 0)                ;; if new text
+                     (do (swap! the-list #(conj % entry-text)) ;; update atom
+                         ;(save-list! @the-list the-name "active") ;; save atom
+                         ((save-lambda) list-name @the-list)
+                         (text! the-entryfield "")             ;; clear textbox
+                         (config! the-listbox :model @the-list))))) ;;update lbx
+        _ (listen the-add-button :action add-fn) ;; bind add button to add-fn
+        the-remove-button (button :text "remove")
+        remove-fn (fn [e] ;; fn bound to the remove button (UI) 
+                    (println "remove-fn")
+                    (let [selected (set
+                                    (selection the-listbox {:multi? true}))]
+                      (swap! the-list #(remove selected %))
+                      ;; (catch-finished selected) ;; sends to the done list
+                      ;(save-list! @the-list the-name "active")
+                      ((save-lambda) list-name @the-list)
+                      (config! the-listbox :model @the-list)))
+        _ (listen the-remove-button :action remove-fn) 
+        the-shuffle-button (button :text "shuffle")
+        _ (listen the-shuffle-button :action
+                  (fn [e]
+                    (swap! the-list shuffle)
+                    (config! the-listbox :model @the-list)
+                    ;(save-list! @the-list the-name "active")
+                    ((save-lambda) list-name @the-list)))
+        
+        ;; functionality's done, now we lay out the interface
+        the-north-split (top-bottom-split
+                         (label list-name)
+                         (left-right-split the-entryfield
+                                          the-add-button
+                                          :divider-location 2/3))
+        the-south-split (left-right-split the-remove-button
+                                          the-shuffle-button
+                                          :divider-location 2/3)
+        the-content (border-panel
+                     :north the-north-split
+                     :center (scrollable the-listbox)
+                     :south the-south-split
+                     :vgap 5 :hgap 5 :border 5)]
+    {:content the-content
+     :name list-name}))
+
+
 
 (defn three-split-horiz [one two three]
   " helper function for display-lists, displays 3 lists side by side, 33% each "
@@ -343,8 +334,19 @@ zero-indexed. "
 ;; display menu
 ;; display list options
 
+;; state
+;; active lists list
+;; hidden lists list
+;; each todo-list's items
 
-(def f (frame :title "Tiling Todo Lists"))
+
+
+
+
+(def f (frame :title "Tiling Todo Lists"
+              :height 650
+              :width 650
+              :on-close :exit))
 
 (defn show-window! []
   (-> f
@@ -352,15 +354,15 @@ zero-indexed. "
       show!))
 
 (defn build-listbox [list-atom]
-  ;; only used for testing
   (reorderable-listbox list-atom))
 
-(defn display [lists]
+(defn display [lists save-lambda]
   " Lists is a list or vector of todo-list-atoms.  This function displays those todo 
     lists without regard to what is already showing. "
-  (println "display method\n\n\n")
-  (let [boxes (map reorderable-listbox lists)]
-    (println "in the let loop in the display method\n\n\n")
+  (println "display method\n\n\n and lists: " lists "\n\n\n")
+  (let [boxes (map (fn [x] (make-todo x save-lambda)) lists)]
+    (println "in the let loop in the display method\n\n\n
+and boxes: " boxes "\n\n\n")
     (config! f :content (display-lists boxes))))
 
 (defn add-to-window! [list-atom]
@@ -368,3 +370,9 @@ zero-indexed. "
   (display (build-listbox list-atom)))
 
 
+(defn _native! []
+  ;; this doesn't get passed to core.clj otherwise
+  (native!))
+
+(defn add-something! []
+  (config! f :content "this is totally content!!!!!"))

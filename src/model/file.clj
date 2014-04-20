@@ -16,7 +16,7 @@
   
 (defn get-name []
   " .getName isn't being found (not available at read-time?) so it's wrapped
-    up here. "
+    up here. This is getting the file name."
   (fn [x] (.getName x)))
 
 (defn get-list-names []
@@ -51,6 +51,9 @@
          )))
 
 
+;; above is getting lists from files, below is dealing with them in memory
+
+
 (defn create-list [items status]
   (atom (with-meta items {:tag status})))
 
@@ -63,8 +66,21 @@
 (defn list-active? [a-list]
   (= "active" (:tag (meta @a-list))))
 
+(defn list-hidden? [a-list]
+  (= "hidden" (:tag (meta @a-list))))
+
 (defn get-active-lists []
   (filter list-active? (map get-list (get-list-names))))
+
+(defn get-hidden-lists []
+  (filter (fn [x] (not (list-active? x)))
+          (map get-list (get-list-names))))
+
+(defn get-active-list-names []
+  (map (fn [x] (-> x meta :name)) (get-active-lists)))
+
+(defn get-hidden-list-names []
+  (map (fn [x] (-> x meta :name)) (get-hidden-lists)))
 
 (defn startup-lists []
   '())
