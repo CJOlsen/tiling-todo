@@ -78,32 +78,40 @@ zero-indexed. "
         the-entryfield (text "")
         the-add-button (button :text "add")
         add-fn (fn [e] ;; lambda fn to add new item from the text field (UI)
-                 (let [entry-text (text the-entryfield)]
+                 (let [entry-text (text the-entryfield)
+                       meta-data (meta @the-list)]
                    (if (> (count entry-text) 0)                ;; if new text
                      (do (swap! the-list #(conj % entry-text)) ;; update atom
+                         ;; meta-data has an issue where it disappears
+                         (swap! the-list #(with-meta % meta-data)) 
                          ;(save-list! @the-list the-name "active") ;; save atom
                          (save-lambda list-name the-list)
                          (text! the-entryfield "")             ;; clear textbox
                          (config! the-listbox :model @the-list))))) ;;update lbx
         _ (listen the-add-button :action add-fn) ;; bind add button to add-fn
         the-remove-button (button :text "remove")
-        remove-fn (fn [e] ;; fn bound to the remove button (UI) 
-                    (println "remove-fn")
+        remove-fn (fn [e] ;; fn bound to the remove button (UI)
                     (let [selected (set
-                                    (selection the-listbox {:multi? true}))]
+                                    (selection the-listbox {:multi? true}))
+                          meta-data (meta @the-list)]
                       (swap! the-list #(remove selected %))
+                      ;; for whatever reason this deletes the meta data, 
+                      ;; so it has to be added back manually
+                      (swap! the-list #(with-meta % meta-data))
                       ;; (catch-finished selected) ;; sends to the done list
-                      ;(save-list! @the-list the-name "active")
                       (save-lambda list-name the-list)
                       (config! the-listbox :model @the-list)))
         _ (listen the-remove-button :action remove-fn) 
         the-shuffle-button (button :text "shuffle")
         _ (listen the-shuffle-button :action
                   (fn [e]
-                    (swap! the-list shuffle)
-                    (config! the-listbox :model @the-list)
-                    ;(save-list! @the-list the-name "active")
-                    (save-lambda list-name the-list)))
+                    (let [meta-data (meta @the-list)]
+                      ;; fix shuffle turning the list into a vector
+                      (swap! the-list #(into '() (reverse (shuffle %))))
+                      ;; fix the loss of meta-data
+                      (swap! the-list #(with-meta % meta-data))
+                      (config! the-listbox :model @the-list)
+                      (save-lambda list-name the-list))))
         
         ;; functionality's done, now we lay out the interface
         the-north-split (top-bottom-split
