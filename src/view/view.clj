@@ -73,7 +73,7 @@ zero-indexed. "
   "Takes a list, builds it out into a border panel complete with buttons
    and internal event handling and returns it. "
   (let [the-list list-atom
-        list-name (:name (meta the-list))
+        list-name (:name (meta @the-list))
         the-listbox (reorderable-listbox the-list)
         the-entryfield (text "")
         the-add-button (button :text "add")
@@ -82,7 +82,7 @@ zero-indexed. "
                    (if (> (count entry-text) 0)                ;; if new text
                      (do (swap! the-list #(conj % entry-text)) ;; update atom
                          ;(save-list! @the-list the-name "active") ;; save atom
-                         ((save-lambda) list-name @the-list)
+                         (save-lambda list-name the-list)
                          (text! the-entryfield "")             ;; clear textbox
                          (config! the-listbox :model @the-list))))) ;;update lbx
         _ (listen the-add-button :action add-fn) ;; bind add button to add-fn
@@ -94,7 +94,7 @@ zero-indexed. "
                       (swap! the-list #(remove selected %))
                       ;; (catch-finished selected) ;; sends to the done list
                       ;(save-list! @the-list the-name "active")
-                      ((save-lambda) list-name @the-list)
+                      (save-lambda list-name the-list)
                       (config! the-listbox :model @the-list)))
         _ (listen the-remove-button :action remove-fn) 
         the-shuffle-button (button :text "shuffle")
@@ -103,7 +103,7 @@ zero-indexed. "
                     (swap! the-list shuffle)
                     (config! the-listbox :model @the-list)
                     ;(save-list! @the-list the-name "active")
-                    ((save-lambda) list-name @the-list)))
+                    (save-lambda list-name the-list)))
         
         ;; functionality's done, now we lay out the interface
         the-north-split (top-bottom-split
@@ -299,31 +299,6 @@ zero-indexed. "
     (menubar
      :items [(menu :text "file" :items [modify])])))
 
-;; (defn make-frame
-;;   ([]
-;;      (frame :title "my todo list(s)"
-;;          :menubar (make-menubar)
-;;          :content (active-content)
-;;          :width 650
-;;          :height 650
-;;          :on-close :exit))
-;;   ([get-content-function]
-;;      (frame :title "my todo list(s)"
-;;          :menubar (make-menubar)
-;;          :content (get-content-function)
-;;          :width 650
-;;          :height 650
-;;          :on-close :exit)))
-
-;; (def the-frame
-;;   (frame :title "my todo list(s)"
-;;          :menubar (make-menubar)
-;;          :content (active-content)
-;;          :width 650
-;;          :height 650
-;;          :on-close :exit))
-  
-
 ;; Interface methods
 ;;
 ;; Build window
@@ -343,13 +318,14 @@ zero-indexed. "
 
 
 
-(def f (frame :title "Tiling Todo Lists"
-              :height 650
-              :width 650
-              :on-close :exit))
+(def main-frame (frame :title "Tiling Todo Lists"
+                       :height 650
+                       :width 650
+                       ;:menubar (make-menubar)
+                       :on-close :exit))
 
 (defn show-window! []
-  (-> f
+  (-> main-frame
       pack!
       show!))
 
@@ -358,12 +334,11 @@ zero-indexed. "
 
 (defn display [lists save-lambda]
   " Lists is a list or vector of todo-list-atoms.  This function displays those todo 
-    lists without regard to what is already showing. "
-  (println "display method\n\n\n and lists: " lists "\n\n\n")
-  (let [boxes (map (fn [x] (make-todo x save-lambda)) lists)]
-    (println "in the let loop in the display method\n\n\n
-and boxes: " boxes "\n\n\n")
-    (config! f :content (display-lists boxes))))
+    lists in place of what was already showing. "
+  (let [todo-boxes (map (fn [x] (make-todo x save-lambda)) lists)]
+    (config! main-frame :content (display-lists todo-boxes))
+    (pack! main-frame)
+    (show! main-frame)))
 
 (defn add-to-window! [list-atom]
   (println "add to window method\n\n\n")
@@ -375,4 +350,4 @@ and boxes: " boxes "\n\n\n")
   (native!))
 
 (defn add-something! []
-  (config! f :content "this is totally content!!!!!"))
+  (config! main-frame :content "this is totally content!!!!!"))

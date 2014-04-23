@@ -10,9 +10,13 @@
 
 (def save-list-lambda
   " Given to the view layer for saving list modifications. "
-  (fn [list-name list-contents]
-    '()))  ;; will this work???
+  (fn [list-name the-list]
+    (println "\n\nsave-list-lambda\n\nlist-name: " list-name "\n\nthe-list: " the-list "\n\nlist-status:\n\n" (:status (meta @the-list)) "\n\n\nand just meta:\n" (meta @the-list))
+    (model/save-list! the-list list-name (:status (meta @the-list)))))  ;; will this work???
 
+
+(defn get-active-lists-c []
+  model/get-active-lists)
 ;; (model/get-active-lists)
 ;; (model/display lists)
 

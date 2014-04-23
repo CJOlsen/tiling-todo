@@ -3,7 +3,7 @@
 
 ;; dynamic for testing purposes (these get overridden in the test suite)
 (def ^:dynamic storage-folder "lists/")
-(def ^:dynamic storage-folder "test/static-folder")
+;(def ^:dynamic storage-folder "test/static-folder")
 
 
 (defn load-lists []
@@ -26,6 +26,7 @@
 
 (defn save-list! [the-list list-name status]
   " Saves list data to local memory. "
+  (println "\n\n\nsave-list!\nlocation: " (str storage-folder "/" list-name) "\nand status: " status "\n\n")
   (spit (str storage-folder "/" list-name)
         (prn-str (map str (conj @the-list status)))))
 
@@ -44,7 +45,9 @@
                status (first as-clj-list)]        ;; save status for meta-data
            (-> as-clj-list           
                rest                         ;; first element is status, remove it
-               (#(with-meta % {:tag status  ;; active or hidden
+               ;; there's an argument for placing the meta-data on the atom
+               ;; instead of on the list within the atom
+               (#(with-meta % {:status status  ;; active or hidden
                                :name list-name}))
                atom))) ;; and make it mutable
          "this is an error" ;; else return an empty list (or error)
@@ -55,19 +58,19 @@
 
 
 (defn create-list [items status]
-  (atom (with-meta items {:tag status})))
+  (atom (with-meta items {:status status})))
 
 (defn make-list-active! [a-list]
-  (swap! a-list #(with-meta % {:tag "active"})))
+  (swap! a-list #(with-meta % {:status "active"})))
 
 (defn make-list-hidden! [a-list]
-  (swap! a-list #(with-meta % {:tag "hidden"})))
+  (swap! a-list #(with-meta % {:status "hidden"})))
 
 (defn list-active? [a-list]
-  (= "active" (:tag (meta @a-list))))
+  (= "active" (:status (meta @a-list))))
 
 (defn list-hidden? [a-list]
-  (= "hidden" (:tag (meta @a-list))))
+  (= "hidden" (:status (meta @a-list))))
 
 (defn get-active-lists []
   (filter list-active? (map get-list (get-list-names))))
