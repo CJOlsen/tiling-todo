@@ -26,7 +26,6 @@
 
 (defn save-list! [the-list list-name status]
   " Saves list data to local memory. Takes an atom of a list and two strings."
-  (println "\n\n\nsave-list!\nlocation: " (str storage-folder "/" list-name) "\nand status: " status "\n\n")
   (spit (str storage-folder "/" list-name)
         (prn-str (map str (conj @the-list status)))))
 
