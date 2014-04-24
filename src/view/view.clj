@@ -212,17 +212,15 @@ zero-indexed. "
                                               (nth the-content 7)
                                               (nth the-content 8))))))
 
-(defn mod-listen [get-active-lambda get-hidden-lambda make-new-lambda
+(defn mod-listen [get-active-lambda get-hidden-lambda save-list-lambda
+                  delete-list-lambda make-active-lambda make-hidden-lambda
                   update-window-lambda]
+  " Create the pop-up window for the 'edit lists' menu option "
   ;; pop-up a new window for meta list options.  Everything for the
   ;; 'modify' pop-up is encapsulated in this closure.  This is a bit 
   ;; complicated and maybe should be broken out into pieces, as it is
   ;; it wouldn't really fit into the usual 80 columns
-  
-  ;; needs a "done" button
-  ;; needs an "add new active list" button
   (fn [e]
-    (println "\n\nwelcome to the mod-listen function!!!\n\n")
     (let [active-model (atom (get-active-lambda))
           active-listbox (reorderable-listbox active-model)
           hidden-model (atom (get-hidden-lambda))
@@ -242,11 +240,7 @@ zero-indexed. "
                         (swap! active-model #(drop-item % mover))
                         (config! hidden-listbox :model @hidden-model)
                         (config! active-listbox :model @active-model)
-                        
-                        ;; ((:make-hidden! organizer) mover)
-                        
-                        
-                        )))
+                        (make-hidden-lambda mover))))
           _ (listen make-active :action
                     ;; "See notes for make-hidden above.
                     ;;  They are almost identical."
@@ -255,10 +249,7 @@ zero-indexed. "
                               (swap! hidden-model #(drop-item % mover))
                               (config! hidden-listbox :model @hidden-model)
                               (config! active-listbox :model @active-model)
-                              
-                              ;; ((:make-active! organizer) mover)
-                              
-                              )))
+                              (make-active-lambda mover))))
           delete-dialog (dialog :content
                                 (flow-panel :items
                                             ["Delete the selected not-active todo-list? This will delete the list and all of its items and this can't be undone!"])
@@ -266,8 +257,8 @@ zero-indexed. "
                                 :success-fn (fn [e]
                                               (let [deletion (selection hidden-listbox)]
                                                 (swap! hidden-model #(drop-item % deletion))
-                                                (config! hidden-listbox :model @hidden-model)
-                                                )))
+                                                (delete-list-lambda deletion)
+                                                (config! hidden-listbox :model @hidden-model))))
           _ (listen delete-list :action (fn [e]
                                           (-> delete-dialog
                                               pack!
@@ -282,10 +273,10 @@ zero-indexed. "
                                                  (swap! active-model #(conj % new-name))
                                                  (config! active-listbox :model @active-model)
                                                  ;; this saves the new empty list to disk
-                                                 (make-new-lambda (atom (with-meta '() {:status "active"
+                                                 (save-list-lambda (atom (with-meta '() {:status "active"
                                                                                         :name new-name}))
-                                                                  new-name
-                                                                  "active")
+                                                                   new-name
+                                                                   "active")
                                                  true)))
           _ (listen add-new-list :action (fn [e]
                                            (-> add-new-dialog
@@ -310,11 +301,15 @@ zero-indexed. "
 
 
 (defn make-menubar [get-active-lambda get-hidden-lambda save-list-lambda
+                    delete-list-lambda make-active-lambda make-hidden-lambda
                     update-window-lambda]
   
   (let [modify (action :handler (mod-listen get-active-lambda 
                                             get-hidden-lambda
                                             save-list-lambda
+                                            delete-list-lambda
+                                            make-active-lambda
+                                            make-hidden-lambda
                                             update-window-lambda)
                        :name "edit lists"
                        :tip "Change which lists are displayed.")]
@@ -355,19 +350,23 @@ zero-indexed. "
   (reorderable-listbox list-atom))
 
 (defn add-menubar! [get-active-lambda get-hidden-lambda save-list-lambda
+                    delete-list-lambda make-active-lambda make-hidden-lambda
                     update-window-lambda]
   ;; these lambda functions are given by the controller when add-menubar! 
   ;; is called, it allows the meta list options dialog to get the current 
   ;; state of the program without :requiring the namespace in the view file 
   ;; which would cause a circular dependency.  update-window-lambda is run
   ;; upon closing of the 'edit lists' dialog.
-  (config! main-frame :menubar (make-menubar get-active-lambda get-hidden-lambda save-list-lambda
+  (config! main-frame :menubar (make-menubar get-active-lambda get-hidden-lambda
+                                             save-list-lambda delete-list-lambda
+                                             make-active-lambda 
+                                             make-hidden-lambda
                                              update-window-lambda)))
 
 (defn display [lists save-lambda]
-  " Lists is a list or vector of todo-list-atoms.  This function displays those todo 
-    lists in place of what was already showing. This gets called at start-up and when 
-    the list configuration changes. "
+  " Lists is a list or vector of todo-list-atoms.  This function displays 
+    those todo lists in place of what was already showing. This gets 
+    called at start-up and when the list configuration changes. "
   (let [todo-boxes (map (fn [x] (make-todo x save-lambda)) lists)]
     (config! main-frame :content (display-lists todo-boxes))
     (pack! main-frame)
@@ -381,6 +380,3 @@ zero-indexed. "
 (defn _native! []
   ;; this doesn't get passed to core.clj otherwise(?)
   (native!))
-
-(defn add-something! []
-  (config! main-frame :content "this is totally content!!!!!"))

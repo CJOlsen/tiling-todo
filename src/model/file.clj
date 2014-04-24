@@ -25,7 +25,7 @@
   (map (get-name) (load-lists)))
 
 (defn save-list! [the-list list-name status]
-  " Saves list data to local memory. "
+  " Saves list data to local memory. Takes an atom of a list and two strings."
   (println "\n\n\nsave-list!\nlocation: " (str storage-folder "/" list-name) "\nand status: " status "\n\n")
   (spit (str storage-folder "/" list-name)
         (prn-str (map str (conj @the-list status)))))
@@ -60,11 +60,20 @@
 (defn create-list [items status]
   (atom (with-meta items {:status status})))
 
+(defn update-meta! [item meta-map]  ;; maybe DRY up make-list-active! and make-list-hidden!
+  (let [current-meta (meta @item)]
+    (swap! item #(with-meta % (assoc current-meta)))))
+
+
 (defn make-list-active! [a-list]
-  (swap! a-list #(with-meta % {:status "active"})))
+  (let [current-meta (meta @a-list)]
+    (swap! a-list #(with-meta % (assoc current-meta :status "active")))
+    a-list))
 
 (defn make-list-hidden! [a-list]
-  (swap! a-list #(with-meta % {:status "hidden"})))
+  (let [current-meta (meta @a-list)]
+    (swap! a-list #(with-meta % (assoc current-meta :status "hidden")))
+    a-list))
 
 (defn list-active? [a-list]
   (= "active" (:status (meta @a-list))))
