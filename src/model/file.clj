@@ -80,10 +80,10 @@
           (map get-list (get-list-names))))
 
 (defn get-active-list-names []
-  (map (fn [x] (-> x meta :name)) (get-active-lists)))
+  (map (fn [x] (-> x deref meta :name)) (get-active-lists)))
 
 (defn get-hidden-list-names []
-  (map (fn [x] (-> x meta :name)) (get-hidden-lists)))
+  (map (fn [x] (-> x deref meta :name)) (get-hidden-lists)))
 
 (defn startup-lists []
   '())

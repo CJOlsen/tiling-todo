@@ -15,19 +15,17 @@
     (model/save-list! the-list list-name (:status (meta @the-list)))))  ;; will this work???
 
 
-(defn get-active-lists-c []
-  model/get-active-lists)
-;; (model/get-active-lists)
-;; (model/display lists)
-
-
-;; view/show-window!
-;; view/show-lists
-
-
+(def update-window-lambda
+  " This updates the main window with the current status of the program.  It's given to the menubar so when the 'edit lists' dialog is opened this can be run upon its exit. "
+  (fn [] (view/display
+          (model/get-active-lists)
+          save-list-lambda)))
 
 (defn -main  [& args]
   (view/_native!)
   (view/show-window!)
-  (view/display @active-lists save-list-lambda)
-)
+  (view/add-menubar! model/get-active-list-names
+                     model/get-hidden-list-names
+                     model/save-list!
+                     update-window-lambda)
+  (view/display @active-lists save-list-lambda))
