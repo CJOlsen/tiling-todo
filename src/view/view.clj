@@ -70,12 +70,15 @@ zero-indexed. "
 
 
 (defn make-todo [list-atom save-lambda]
-  "Takes a list, builds it out into a border panel complete with buttons
-   and internal event handling and returns it. "
+  " Takes a list, builds it out into a border panel complete with buttons
+    and internal event handling and returns it. "
   (let [the-list list-atom
         list-name (:name (meta @the-list))
         the-listbox (reorderable-listbox the-list)
-        the-entryfield (text "")
+        the-entryfield (text :text ""
+                             :multi-line? false
+                             :columns 15)
+        
         the-add-button (button :text "add")
         add-fn (fn [e] ;; lambda fn to add new item from the text field (UI)
                  (let [entry-text (text the-entryfield)
@@ -89,6 +92,7 @@ zero-indexed. "
                          (text! the-entryfield "")             ;; clear textbox
                          (config! the-listbox :model @the-list))))) ;;update lbx
         _ (listen the-add-button :action add-fn) ;; bind add button to add-fn
+
         the-remove-button (button :text "remove")
         remove-fn (fn [e] ;; fn bound to the remove button (UI)
                     (let [selected (set
@@ -102,16 +106,17 @@ zero-indexed. "
                       (save-lambda list-name the-list)
                       (config! the-listbox :model @the-list)))
         _ (listen the-remove-button :action remove-fn) 
+
         the-shuffle-button (button :text "shuffle")
-        _ (listen the-shuffle-button :action
-                  (fn [e]
+        shuffle-fn (fn [e]
                     (let [meta-data (meta @the-list)]
                       ;; fix shuffle turning the list into a vector
                       (swap! the-list #(into '() (reverse (shuffle %))))
                       ;; fix the loss of meta-data
                       (swap! the-list #(with-meta % meta-data))
                       (config! the-listbox :model @the-list)
-                      (save-lambda list-name the-list))))
+                      (save-lambda list-name the-list)))
+        _ (listen the-shuffle-button :action shuffle-fn)
         
         ;; functionality's done, now we lay out the interface
         the-north-split (top-bottom-split
@@ -119,8 +124,8 @@ zero-indexed. "
                          (left-right-split the-entryfield
                                           the-add-button
                                           :divider-location 2/3))
-        the-south-split (left-right-split the-remove-button
-                                          the-shuffle-button
+        the-south-split (left-right-split the-shuffle-button
+                                          the-remove-button
                                           :divider-location 2/3)
         the-content (border-panel
                      :north the-north-split
@@ -220,8 +225,10 @@ zero-indexed. "
   (fn [e]
     (let [active-model (atom ((:get-active-names core-callbacks)))
           active-listbox (reorderable-listbox active-model)
+          _ (config! active-listbox :size [300 :by 200])
           hidden-model (atom ((:get-hidden-names core-callbacks)))
           hidden-listbox (reorderable-listbox hidden-model)
+          _ (config! hidden-listbox :size [300 :by 200])
           make-hidden (button :text "make selected hidden")
           make-active (button :text "make selected active")
           delete-list (button :text "delete selected hidden list")
@@ -280,20 +287,20 @@ zero-indexed. "
                                            (-> add-new-dialog
                                                pack!
                                                show!)))]
+      
       ;; the following is a dialog because it's an easy way to implement
       ;; a function (the window update) on its closing.
-      ;; if a "done" button could be wired up to update the main window
-      ;; and close the pop-up window that might be cleaner, since this
-      ;; isn't sizing anything very well at all
-      (-> (dialog :content (top-bottom-split
-                            (border-panel :north "Active Todo Lists"
-                                          :center active-listbox
-                                          :south (left-right-split make-hidden add-new-list))
-                            (border-panel :north "Hidden Todo Lists"
-                                          :center hidden-listbox
-                                          :south (left-right-split make-active delete-list))
-                            :divider-location 1/2)
-                  :success-fn (fn [e] ((:update-window! core-callbacks))))
+      ;; another option is using (return-with-fn
+      (-> (dialog
+           :content (top-bottom-split
+                     (border-panel :north "Active Todo Lists"
+                                   :center active-listbox
+                                   :south (left-right-split make-hidden add-new-list))
+                     (border-panel :north "Hidden Todo Lists"
+                                   :center hidden-listbox
+                                   :south (left-right-split make-active delete-list))
+                     :divider-location 1/2)
+           :success-fn (fn [e] ((:update-window! core-callbacks))))
           pack!
           show!))))
 
