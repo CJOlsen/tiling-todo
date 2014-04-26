@@ -1,6 +1,7 @@
 (ns view.view
   (:require [seesaw.dnd :as dnd])
-  (:use [seesaw core mig]))
+  (:use [seesaw core mig])
+  (:import org.pushingpixels.substance.api.SubstanceLookAndFeel))
 
 
 
@@ -216,7 +217,7 @@ zero-indexed. "
                                               (nth the-content 7)
                                               (nth the-content 8))))))
 
-(defn mod-listen [core-callbacks]
+(defn edit-list-dialog [core-callbacks]
   " Create the pop-up window for the 'edit lists' menu option "
   ;; pop-up a new window for meta list options.  Everything for the
   ;; 'modify' pop-up is encapsulated in this closure.  This is a bit 
@@ -305,12 +306,42 @@ zero-indexed. "
           show!))))
 
 
+(def substance-skins
+  " This is the names and java objects of the different skins. " 
+  ;; It's easier to deal with this as a Clojure hash-map than a java.util.TreeMap
+  ;; The names are the keys so you can bounce a name off this and get the object 
+  ;; back (which is why this shows up in the thread macro below).
+  (into {} (SubstanceLookAndFeel/getAllSkins)))
+
+(defn choose-skin-dialog []
+  " This is the dialog that's popped up when the 'Choose Skin' option is chosen
+    from the file menu. It follows the 'substance' example by Dave Ray. "
+  (fn [e]
+    (-> (dialog :content
+                (border-panel
+                 :north "Choose a color theme below:"
+                 :center (combobox
+                          :model (keys substance-skins)
+                          :listen [:selection
+                                   (fn [e]
+                                     (invoke-later
+                                      (-> e
+                                          selection
+                                          substance-skins
+                                          .getClassName
+                                          SubstanceLookAndFeel/setSkin)))])))
+        pack!
+        show!)))
+
 (defn make-menubar [core-callbacks]
-  (let [modify (action :handler (mod-listen core-callbacks)
-                       :name "edit lists"
-                       :tip "Change which lists are displayed.")]
+  (let [edit-lists (action :handler (edit-list-dialog core-callbacks)
+                           :name "Edit Lists"
+                           :tip "Change which lists are displayed.")
+        choose-colors (action :handler (choose-skin-dialog)
+                              :name "Choose Color Theme"
+                              :tip "Change the color scheme!")]
       (menubar
-       :items [(menu :text "file" :items [modify])])))
+       :items [(menu :text "File" :items [edit-lists choose-colors])])))
 
 
 (def main-frame 
@@ -346,3 +377,4 @@ zero-indexed. "
 (defn _native! []
   ;; this doesn't get passed to core.clj otherwise(?)
   (native!))
+
