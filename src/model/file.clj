@@ -104,6 +104,16 @@
 (defn get-active-lists []
   (filter list-active? (map get-list (get-list-names))))
 
+;; (defn get-active-lists []
+;;   (let [return-lists (filter list-active? (map get-list (get-list-names)))
+;;         default-list (list (atom (with-meta (list "default list")
+;;                              {:status "active" :name "default"}
+;;                              )))]
+;;     ;; if no lists exist, return a default exist so nil isn't being displayed
+;;     (if (empty? return-lists)
+;;       default-list
+;;       return-lists)))
+
 (defn get-hidden-lists []
   (filter (fn [x] (not (list-active? x)))
           (map get-list (get-list-names))))
@@ -151,3 +161,12 @@
                             (#(drop-last (- (count @a-list) new-index 1) %)))
                         (list (nth @a-list index))
                         (drop (inc new-index) @a-list)))))
+
+
+(defn prep-save-folder []
+  " Checks the list folder and if empty creates a default list. "
+  (let [file-count (count (file-seq (io/file "lists/")))]
+    (if (= file-count 1)
+      (spit "lists/default" "(\"active\" \"default\")"))))
+
+(prep-save-folder)

@@ -363,6 +363,7 @@ zero-indexed. "
 
 (def main-frame 
   (frame :title "Tiling Todo Lists"
+         :content "...content loading..."
          :height 650
          :width 650
          :on-close :exit))
