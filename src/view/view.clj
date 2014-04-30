@@ -1,13 +1,34 @@
+;; Author: Christopher Olsen
+;; Program: Tiling Todo Lists
+;; Copyright 2014
+;; License: GNU GPLv3 (Eclipse available upon request)
+
+;; This file is part of Tiling Todo Lists.
+;;
+;; Tiling Todo Lists is free software: you can redistribute it and/or modify
+;; it under the terms of the GNU General Public License as published by
+;; the Free Software Foundation, either version 3 of the License, or
+;; (at your option) any later version.
+;;
+;; Tiling Todo Lists is distributed in the hope that it will be useful,
+;; but WITHOUT ANY WARRANTY; without even the implied warranty of
+;; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+;; GNU General Public License for more details.
+;;
+;; You should have received a copy of the GNU General Public License
+;; along with Tiling Todo Lists.  If not, see <http://www.gnu.org/licenses/>.
+
+
+
 (ns view.view
   (:require [seesaw.dnd :as dnd])
   (:use [seesaw core mig])
   (:import org.pushingpixels.substance.api.SubstanceLookAndFeel))
 
 
-
 (defn list-with-moved-element
-  ;; this borrows heavily from seesaw/test/examples/reorderable_listbox, though it's a
-  ;; standard reordering algorithm
+  ;; this borrows heavily from seesaw/test/examples/reorderable_listbox, 
+  ;; though it's a standard reordering algorithm
   [current-list element new-index]
   (let [current-list (vec current-list)
         current-index (.indexOf current-list element)]
@@ -223,6 +244,7 @@ zero-indexed. "
   ;; 'modify' pop-up is encapsulated in this closure.  This is a bit 
   ;; complicated and maybe should be broken out into pieces, as it is
   ;; it wouldn't really fit into the usual 80 columns
+  ;; (items bound to an underscore are run for side-effects)
   (fn [e]
     (let [active-model (atom ((:get-active-names core-callbacks)))
           active-listbox (reorderable-listbox active-model)
@@ -306,32 +328,27 @@ zero-indexed. "
           show!))))
 
 
-(def substance-skins
-  " This is the names and java objects of the different skins. " 
-  ;; It's easier to deal with this as a Clojure hash-map than a java.util.TreeMap
-  ;; The names are the keys so you can bounce a name off this and get the object 
-  ;; back (which is why this shows up in the thread macro below).
-  (into {} (SubstanceLookAndFeel/getAllSkins)))
-
 (defn choose-skin-dialog []
   " This is the dialog that's popped up when the 'Choose Skin' option is chosen
     from the file menu. It follows the 'substance' example by Dave Ray. "
   (fn [e]
-    (-> (dialog :content
-                (border-panel
-                 :north "Choose a color theme below:"
-                 :center (combobox
-                          :model (keys substance-skins)
-                          :listen [:selection
-                                   (fn [e]
-                                     (invoke-later
-                                      (-> e
-                                          selection
-                                          substance-skins
-                                          .getClassName
-                                          SubstanceLookAndFeel/setSkin)))])))
-        pack!
-        show!)))
+    (let [substance-skins (into {} (SubstanceLookAndFeel/getAllSkins))]
+      ;; substsance-skins because a hash-map is easier than java.util.TreeMap
+      (-> (dialog :content
+                  (border-panel
+                   :north "Choose a color theme below:"
+                   :center (combobox
+                            :model (keys substance-skins)
+                            :listen [:selection
+                                     (fn [e]
+                                       (invoke-later
+                                        (-> e
+                                            selection
+                                            substance-skins ;; hash-maps are fn's
+                                            .getClassName
+                                            SubstanceLookAndFeel/setSkin)))])))
+          pack!
+          show!))))
 
 (defn make-menubar [core-callbacks]
   (let [edit-lists (action :handler (edit-list-dialog core-callbacks)

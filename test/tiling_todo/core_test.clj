@@ -77,23 +77,28 @@
 ;;;; test the controller -------------------------------------------------------
 
 
-(deftest start-up
-  (testing "Load active listboxes into controller"
-    (with-redefs [storage-folder "test/static-folder"]
-      ;; (almost) identical to the model layer test
-      (is (= (frequencies '("four" "two"))
-             (frequencies (-> (map deref (c/get-active-lists-c))
-                              (#(map meta %))
-                              (#(map :name %))))))))
+  ;; **** There's a sizable problem as far as testing is concerned that too 
+  ;;      much of the controller logic is in the view layer.  To fix the view
+  ;;      and controller need to be refactored to migrate the functionality 
+  ;;      into the controller.
+
+  ;; (deftest start-up
+  ;; (testing "Load active listboxes into controller"
+  ;;   (with-redefs [storage-folder "test/static-folder"]
+  ;;     ;; (almost) identical to the model layer test
+  ;;     (is (= (frequencies '("four" "two"))
+  ;;            (frequencies (-> (map deref (c/get-active-lists-c))
+  ;;                             (#(map meta %))
+  ;;                             (#(map :name %))))))))
   ;; the following only check for errors - the GUI layer must
   ;; be checked manually to ensure it's displaying properly
-  (testing "Open the main window without any lists, without error"
-    (view/show-window!))
-  (testing "Build a list without error"
-    (build-listbox (create-list '(1 2 3) "active")))
-  (testing "Add a list to the main window without error"
-    (do (show-window!)
-        (add-to-window! (create-list '(1 2 3) "active"))))
+  ;; (testing "Open the main window without any lists, without error"
+  ;;   (view/show-window!))
+  ;; (testing "Build a list without error"
+  ;;   (build-listbox (create-list '(1 2 3) "active")))
+  ;; (testing "Add a list to the main window without error"
+  ;;   (do (show-window!)
+  ;;       (add-to-window! (create-list '(1 2 3) "active"))))
   ;; (testing "Add multiple lists to the main window without error"
   ;;   (is (= 5 0)))
   ;; (testing "Remove an active listbox from current display, without error"
@@ -101,6 +106,5 @@
   ;; (testing "Change order of displayed listboxes, withour error"
   ;;   (is (= 5 0)))
   ;; (testing "Display the list-options pop-up"
-  ;;   (is (= 5 0)))
-)
+  ;;   (is (= 5 0))))
 
